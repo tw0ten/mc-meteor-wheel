@@ -1,27 +1,28 @@
 {
   "schemaVersion": 1,
-  "id": "addon-template",
+  "id": "meteor-wheel",
   "version": "${version}",
-  "name": "Addon Template",
-  "description": "An addon template for Meteor Client addons.",
+  "name": "Wheel",
+  "description": "An addon for Meteor Client.",
   "authors": [
-    "seasnail"
+    "2(10"
   ],
   "contact": {
-    "repo": "https://github.com/MeteorDevelopment/meteor-addon-template"
+    "repo": "https://github.com/tw0ten/mc-meteor-wheel"
   },
-  "icon": "assets/template/icon.png",
+  "icon": "assets/icon.png",
   "environment": "client",
   "entrypoints": {
     "meteor": [
-      "com.example.addon.AddonTemplate"
+      "twoten.meteor.wheel.Addon"
     ]
   },
   "mixins": [
-    "addon-template.mixins.json"
+    "meteor-wheel.mixins.json"
   ],
   "custom": {
-    "meteor-client:color": "225,25,25"
+    "meteor-client:color": "225,25,25",
+    "meteor-client:commit": "${commit}"
   },
   "depends": {
     "java": ">=21",

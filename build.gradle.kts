@@ -34,6 +34,7 @@ tasks {
         val propertyMap = mapOf(
             "version" to project.version,
             "mc_version" to project.property("minecraft_version"),
+            "commit" to project.findProperty("commit"),
         )
 
         filesMatching("fabric.mod.json") {
