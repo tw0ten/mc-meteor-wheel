@@ -7,6 +7,7 @@ import java.util.List;
 import org.lwjgl.glfw.GLFW;
 
 import meteordevelopment.meteorclient.MeteorClient;
+import meteordevelopment.meteorclient.events.game.OpenScreenEvent;
 import meteordevelopment.meteorclient.events.meteor.KeyEvent;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.gui.GuiTheme;
@@ -74,7 +75,7 @@ public class WheelTab extends Tab {
     }
 
     private static class Wheel extends System<Wheel> {
-        private class MapScreen extends Screen {
+        private class WheelScreen extends Screen {
             private static double s() {
                 return mc.getWindow().getScaleFactor();
             }
@@ -89,14 +90,12 @@ public class WheelTab extends Tab {
 
             private double mx, my;
 
-            public MapScreen() {
+            public WheelScreen() {
                 super(Text.of(getName()));
-                MeteorClient.EVENT_BUS.subscribe(this);
             }
 
             @Override
             public void close() {
-                MeteorClient.EVENT_BUS.unsubscribe(this);
                 super.close();
                 if (selected == null)
                     return;
@@ -127,6 +126,11 @@ public class WheelTab extends Tab {
             }
 
             @Override
+            public boolean shouldPause() {
+                return super.shouldPause() && false;
+            }
+
+            @Override
             protected void init() {
                 super.init();
                 mouseMoved(width / 2d, height / 2d);
@@ -141,11 +145,6 @@ public class WheelTab extends Tab {
                         return null;
                 }
                 return modules.get((int) ((Math.PI * 2 + d / 2d + Math.atan2(v.x, v.y)) / d) % modules.size());
-            }
-
-            @Override
-            public boolean shouldPause() {
-                return super.shouldPause() && false;
             }
 
             @EventHandler
@@ -278,6 +277,12 @@ public class WheelTab extends Tab {
                 open();
         }
 
+        @EventHandler
+        private void onOpenScreen(final OpenScreenEvent event) {
+            if (mc.currentScreen instanceof final WheelScreen s)
+                MeteorClient.EVENT_BUS.unsubscribe(s);
+        }
+
         private void open() {
             if (mc.player == null)
                 return;
@@ -285,7 +290,10 @@ public class WheelTab extends Tab {
                 return;
             if (modules.get().isEmpty())
                 return;
-            mc.setScreen(new MapScreen());
+
+            final var s = new WheelScreen();
+            MeteorClient.EVENT_BUS.subscribe(s);
+            mc.setScreen(s);
         }
     }
 
