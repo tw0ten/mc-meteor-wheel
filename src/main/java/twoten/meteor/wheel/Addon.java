@@ -29,7 +29,7 @@ public class Addon extends MeteorAddon {
 
     @Override
     public GithubRepo getRepo() {
-        return new GithubRepo("tw0ten", "mc-meteor-wheel", "main");
+        return new GithubRepo("tw0ten", "mc-meteor-wheel");
     }
 
     @Override

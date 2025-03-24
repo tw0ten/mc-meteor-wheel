@@ -134,21 +134,26 @@ public class WheelTab extends Tab {
 
             private Module selected() {
                 final var s = s();
-                final var v = new Vec2f((float) (mx - width * s / 2f), (float) (my - height * s / 2f));
+                final var v = new Vec2f((float) (mx - width * s / 2d), (float) (my - height * s / 2d));
                 {
                     final var d = v.length();
                     if (d <= closeR || d > wheelR)
                         return null;
                 }
-                return modules.get((int) ((Math.PI * 2 + d / 2 + Math.atan2(v.x, v.y)) / d) % modules.size());
+                return modules.get((int) ((Math.PI * 2 + d / 2d + Math.atan2(v.x, v.y)) / d) % modules.size());
+            }
+
+            @Override
+            public boolean shouldPause() {
+                return super.shouldPause() && false;
             }
 
             @EventHandler
             private void onRender(final Render2DEvent event) {
                 final var r = HudRenderer.INSTANCE;
                 final var s = s();
-                final var cx = width / 2 * s;
-                final var cy = height / 2 * s;
+                final var cx = width / 2d * s;
+                final var cy = height / 2d * s;
                 r.begin(event.drawContext);
                 for (var i = 0; i < l; i++) {
                     {
@@ -162,7 +167,7 @@ public class WheelTab extends Tab {
                     }
                     final var m = modules.get(i);
                     r.text(m.title,
-                            cx + (closeR + wheelR / 2) * Math.sin(d * i) - r.textWidth(m.title, shadow) / 2, // TODO: proper text centering
+                            cx + (closeR + wheelR / 2) * Math.sin(d * i) - r.textWidth(m.title, shadow) / 2d,
                             cy + (closeR + wheelR / 2) * Math.cos(d * i),
                             m == selected ? hoverColor.get() : textColor.get(),
                             shadow);
@@ -196,7 +201,7 @@ public class WheelTab extends Tab {
 
         private final Setting<Double> centerSize = sgVisual.add(new DoubleSetting.Builder()
                 .name("center-size")
-                .description("Radius of the area in the center of the screen is.")
+                .description("Radius of the area in the center of the screen.")
                 .min(0)
                 .sliderRange(0, 50)
                 .defaultValue(15)
