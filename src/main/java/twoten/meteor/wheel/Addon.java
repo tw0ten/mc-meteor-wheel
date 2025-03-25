@@ -7,8 +7,12 @@ import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.addons.GithubRepo;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
+import meteordevelopment.meteorclient.commands.Commands;
 import meteordevelopment.meteorclient.gui.tabs.Tabs;
+import meteordevelopment.meteorclient.systems.Systems;
 import net.fabricmc.loader.api.FabricLoader;
+import twoten.meteor.wheel.commands.WheelCommand;
+import twoten.meteor.wheel.systems.WheelSystem;
 import twoten.meteor.wheel.tabs.WheelTab;
 
 public class Addon extends MeteorAddon {
@@ -18,7 +22,9 @@ public class Addon extends MeteorAddon {
     public void onInitialize() {
         LOG.info("Initializing {}", name);
 
+        Systems.add(new WheelSystem());
         Tabs.add(new WheelTab());
+        Commands.add(new WheelCommand());
     }
 
     @Override
