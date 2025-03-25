@@ -18,7 +18,6 @@ public class Addon extends MeteorAddon {
     public void onInitialize() {
         LOG.info("Initializing {}", name);
 
-        // Tabs
         Tabs.add(new WheelTab());
     }
 

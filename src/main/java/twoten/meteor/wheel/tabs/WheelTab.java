@@ -2,6 +2,7 @@ package twoten.meteor.wheel.tabs;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.glfw.GLFW;
@@ -23,11 +24,17 @@ import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.settings.Settings;
 import meteordevelopment.meteorclient.systems.System;
 import meteordevelopment.meteorclient.systems.Systems;
+import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.systems.modules.movement.Flight;
-import meteordevelopment.meteorclient.systems.modules.movement.Jesus;
+import meteordevelopment.meteorclient.systems.modules.combat.KillAura;
+import meteordevelopment.meteorclient.systems.modules.movement.AutoWalk;
+import meteordevelopment.meteorclient.systems.modules.movement.elytrafly.ElytraFly;
+import meteordevelopment.meteorclient.systems.modules.render.Fullbright;
+import meteordevelopment.meteorclient.systems.modules.render.StorageESP;
+import meteordevelopment.meteorclient.systems.modules.render.Tracers;
 import meteordevelopment.meteorclient.systems.modules.render.Xray;
+import meteordevelopment.meteorclient.systems.modules.render.blockesp.BlockESP;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
@@ -41,10 +48,11 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec2f;
+import twoten.meteor.wheel.Wheel;
 
 public class WheelTab extends Tab {
     public static class TabScreen extends WindowTabScreen {
-        private final Wheel sys = Wheel.get();
+        private final WheelSys sys = WheelSys.get();
 
         public TabScreen(final GuiTheme theme, final Tab tab) {
             super(theme, tab);
@@ -54,44 +62,94 @@ public class WheelTab extends Tab {
         @Override
         public void initWidgets() {
             add(theme.settings(sys.settings)).expandX();
+
+            add(theme.horizontalSeparator()).expandX();
+
+            {
+                final var table = add(theme.table()).expandX().widget();
+
+                table.add(theme.plus()).widget().action = () -> {
+                    sys.wheels.addFirst(new Wheel(List.of()));
+                    save();
+                };
+                table.add(theme.button("Reset")).widget().action = () -> {
+                    sys.defaultWheels();
+                    save();
+                };
+            }
+
+            add(theme.horizontalSeparator()).expandX();
+
+            final var table = add(theme.table()).expandX().widget();
+            for (var i = 0; i < sys.wheels.size(); i++) {
+                final var w = sys.wheels.get(i);
+
+                // TODO: a sep screen like with profiles
+
+                table.add(theme.label("Wheel #" + (i + 1))).expandCellX();
+                table.add(theme.minus()).widget().action = () -> {
+                    sys.wheels.remove(w);
+                    save();
+                };
+                table.row();
+
+                table.add(theme.settings(w.settings)).expandX();
+                table.row();
+
+                table.add(theme.horizontalSeparator()).expandX();
+                table.row();
+            }
         }
 
         @Override
         public boolean toClipboard() {
-            return NbtUtils.toClipboard("wheel-settings", sys.settings.toTag());
+            return NbtUtils.toClipboard("wheel", sys.toTag());
         }
 
         @Override
         public boolean fromClipboard() {
-            final NbtCompound clipboard = NbtUtils.fromClipboard(sys.settings.toTag());
+            final NbtCompound clipboard = NbtUtils.fromClipboard(sys.toTag());
 
             if (clipboard != null) {
-                sys.settings.fromTag(clipboard);
+                sys.fromTag(clipboard);
                 return true;
             }
 
             return false;
         }
+
+        private void save() {
+            sys.save();
+            reload();
+        }
     }
 
-    private static class Wheel extends System<Wheel> {
+    private static class WheelSys extends System<WheelSys> {
         private class WheelScreen extends Screen {
             private static double s() {
                 return mc.getWindow().getScaleFactor();
             }
 
-            private final List<Module> modules = Wheel.this.modules.get();
-            private final int l = modules.size();
-            private final double d = 1d / l * 2 * Math.PI;
+            private final Keybind keybind;
+            private final List<Module> modules;
+            private Module selected;
+
+            private final int l;
+            private final double d;
+            private double mx, my;
+
             private final boolean shadow = textShadow.get();
             private final double closeR = centerSize.get();
             private final double wheelR = wheelSize.get();
-            private Module selected;
 
-            private double mx, my;
-
-            public WheelScreen() {
+            public WheelScreen(final Wheel w) {
                 super(Text.of(getName()));
+
+                this.keybind = w.keybind.get();
+                this.modules = w.modules.get();
+
+                this.l = modules.size();
+                this.d = 1d / l * 2 * Math.PI;
             }
 
             @Override
@@ -99,15 +157,20 @@ public class WheelTab extends Tab {
                 super.close();
                 if (selected == null)
                     return;
+
                 selected.toggle();
+
+                if (chatFeedback.get())
+                    selected.sendToggledMsg();
             }
 
             @Override
             public boolean keyReleased(final int keyCode, final int scanCode, final int modifiers) {
-                if (keyCode == keybind.get().getValue()) {
+                if (keyCode == keybind.getValue()) {
                     close();
                     return true;
                 }
+
                 return super.keyReleased(keyCode, scanCode, modifiers);
             }
 
@@ -175,25 +238,27 @@ public class WheelTab extends Tab {
             }
         }
 
-        public static Wheel get() {
-            return Systems.get(Wheel.class);
+        public static WheelSys get() {
+            return Systems.get(WheelSys.class);
         }
+
+        private final List<Wheel> wheels = new ArrayList<>();
 
         private final Settings settings = new Settings();
 
-        // TODO: should be able to make multiple wheels
         private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-        private final Setting<List<Module>> modules = sgGeneral.add(new ModuleListSetting.Builder()
-                .name("modules")
-                .description("Select modules to put in quick access.")
-                .defaultValue(Flight.class, Jesus.class, Xray.class)
+        private final Setting<Keybind> favorites = sgGeneral.add(new KeybindSetting.Builder()
+                .name("favorites")
+                .description("A wheel for modules you have marked as favorite.")
+                .defaultValue(Keybind.fromKey(GLFW.GLFW_KEY_R))
                 .build());
 
-        private final Setting<Keybind> keybind = sgGeneral.add(new KeybindSetting.Builder()
-                .name("bind")
-                .description("Key to hold.")
-                .defaultValue(Keybind.fromKey(GLFW.GLFW_KEY_R))
+        private final Setting<Boolean> chatFeedback = sgGeneral.add(new BoolSetting.Builder()
+                .name("chat-feedback")
+                .description("Will send \"Toggled on/off\" messages.")
+                .visible(Config.get().chatFeedback::get)
+                .defaultValue(true)
                 .build());
 
         private final SettingGroup sgVisual = settings.createGroup("Appearance");
@@ -216,19 +281,19 @@ public class WheelTab extends Tab {
 
         private final Setting<SettingColor> lineColor = sgVisual.add(new ColorSetting.Builder()
                 .name("line-color")
-                .description("The color for separator lines.")
+                .description("The color of separator lines.")
                 .defaultValue(Color.WHITE.a(100))
                 .build());
 
         private final Setting<SettingColor> textColor = sgVisual.add(new ColorSetting.Builder()
                 .name("text-color")
-                .description("The color for the module title.")
+                .description("The color of module titles.")
                 .defaultValue(Color.WHITE.a(200))
                 .build());
 
         private final Setting<SettingColor> hoverColor = sgVisual.add(new ColorSetting.Builder()
                 .name("hover-color")
-                .description("The color to use to highlight the selected module.")
+                .description("The color used to highlight the selected module.")
                 .defaultValue(new Color(255, 25, 25))
                 .build());
 
@@ -238,7 +303,7 @@ public class WheelTab extends Tab {
                 .defaultValue(true)
                 .build());
 
-        public Wheel() {
+        public WheelSys() {
             super("wheel");
 
             RainbowColors.register(() -> {
@@ -246,35 +311,68 @@ public class WheelTab extends Tab {
                 textColor.get().update();
                 hoverColor.get().update();
             });
+
+            if (isFirstInit)
+                defaultWheels();
         }
 
         @Override
         public NbtCompound toTag() {
-            final NbtCompound tag = new NbtCompound();
+            final var tag = new NbtCompound();
 
             tag.putInt("__version__", 1);
 
             tag.put("settings", settings.toTag());
 
+            final var size = wheels.size();
+            tag.putInt("size", size);
+            for (var i = 0; i < size; i++)
+                tag.put("w-" + i, wheels.get(i).settings.toTag());
+
             return tag;
         }
 
         @Override
-        public Wheel fromTag(final NbtCompound tag) {
+        public WheelSys fromTag(final NbtCompound tag) {
             if (!tag.contains("__version__"))
                 return this;
 
             settings.fromTag(tag.getCompound("settings"));
 
+            final var size = tag.getInt("size");
+            for (var i = 0; i < size; i++)
+                wheels.add(new Wheel(tag.getCompound("w-" + i)));
+
             return this;
+        }
+
+        private void defaultWheels() {
+            wheels.clear();
+            wheels.add(new Wheel(new ModuleListSetting.Builder()
+                    .defaultValue(ElytraFly.class, AutoWalk.class, KillAura.class)
+                    .build().get())
+                    .bind(Keybind.fromKey(GLFW.GLFW_KEY_C)));
+            wheels.add(new Wheel(new ModuleListSetting.Builder()
+                    .defaultValue(Xray.class, BlockESP.class, StorageESP.class, Tracers.class, Fullbright.class)
+                    .build().get())
+                    .bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
         }
 
         @EventHandler
         private void onKey(final KeyEvent event) {
             if (event.action != KeyAction.Press)
                 return;
-            if (event.key == keybind.get().getValue())
-                open();
+
+            if (event.key == favorites.get().getValue()) {
+                open(Wheel.favorites(favorites.get()));
+                return;
+            }
+
+            for (final var w : wheels)
+                if (event.key == w.keybind.get().getValue()) {
+                    open(w);
+                    break;
+                }
         }
 
         @EventHandler
@@ -283,15 +381,15 @@ public class WheelTab extends Tab {
                 MeteorClient.EVENT_BUS.unsubscribe(s);
         }
 
-        private void open() {
+        private void open(final Wheel w) {
             if (mc.player == null)
                 return;
             if (!Utils.canOpenGui())
                 return;
-            if (modules.get().isEmpty())
+            if (w.modules.get().isEmpty())
                 return;
 
-            final var s = new WheelScreen();
+            final var s = new WheelScreen(w);
             MeteorClient.EVENT_BUS.subscribe(s);
             mc.setScreen(s);
         }
@@ -299,7 +397,7 @@ public class WheelTab extends Tab {
 
     public WheelTab() {
         super("Wheel");
-        Systems.add(new Wheel());
+        Systems.add(new WheelSys());
     }
 
     @Override
