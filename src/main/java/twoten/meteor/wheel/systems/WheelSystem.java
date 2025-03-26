@@ -1,6 +1,7 @@
 package twoten.meteor.wheel.systems;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
+import static net.minecraft.util.math.MathHelper.square;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +45,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.Vec2f;
 
 public class WheelSystem extends System<WheelSystem> {
     public static class Wheel {
@@ -103,19 +103,13 @@ public class WheelSystem extends System<WheelSystem> {
             this.modules = w.modules.get();
 
             this.l = modules.size();
-            this.d = 1d / l * 2 * Math.PI;
+            this.d = 2.0 * Math.PI / l;
         }
 
         @Override
         public void close() {
             super.close();
-            if (selected == null)
-                return;
-
-            selected.toggle();
-
-            if (chatFeedback.get())
-                selected.sendToggledMsg();
+            act();
         }
 
         @Override
@@ -143,6 +137,20 @@ public class WheelSystem extends System<WheelSystem> {
         }
 
         @Override
+        public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
+            if (click.get()) {
+                switch (button) {
+                    case GLFW.GLFW_MOUSE_BUTTON_LEFT -> act();
+                    default -> {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
+
+        @Override
         public boolean shouldPause() {
             return super.shouldPause() && false;
         }
@@ -150,38 +158,53 @@ public class WheelSystem extends System<WheelSystem> {
         @Override
         protected void init() {
             super.init();
-            mouseMoved(width / 2d, height / 2d);
+            mouseMoved(width / 2.0, height / 2.0);
+        }
+
+        private void act() {
+            if (selected == null)
+                return;
+
+            selected.toggle();
+
+            if (chatFeedback.get())
+                selected.sendToggledMsg();
         }
 
         private Module selected() {
             final var s = s();
-            final var v = new Vec2f((float) (mx - width * s / 2d), (float) (my - height * s / 2d));
-            final var l = v.length();
-            if (l <= closeR || l > wheelR)
-                return null;
-            return modules.get((int) ((Math.PI * 2 + d / 2d + Math.atan2(v.x, v.y)) / d) % modules.size());
+            final var x = mx - width * s / 2.0;
+            final var y = my - height * s / 2.0;
+            {
+                final var l = square(x) + square(y);
+                if (l <= square(closeR) || l > square(wheelR))
+                    return null;
+            }
+            return modules.get((int) ((Math.PI * 2.0 + d / 2.0 + Math.atan2(x, y)) / d) % modules.size());
         }
 
         @EventHandler
         private void onRender(final Render2DEvent event) {
             final var r = HudRenderer.INSTANCE;
             final var s = s();
-            final var cx = width / 2d * s;
-            final var cy = height / 2d * s;
+            final var cx = width / 2.0 * s;
+            final var cy = height / 2.0 * s;
             r.begin(event.drawContext);
             for (var i = 0; i < l; i++) {
-                final var m = modules.get(i);
-                final var sin = Math.sin(d * i - d / 2);
-                final var cos = Math.cos(d * i - d / 2);
-                r.line(cx + closeR * sin,
-                        cy + closeR * cos,
-                        cx + wheelR * sin,
-                        cy + wheelR * cos,
-                        lineColor.get());
-                r.text(m.title,
-                        cx + (closeR + wheelR / 2) * Math.sin(d * i) - r.textWidth(m.title, shadow) / 2d,
-                        cy + (closeR + wheelR / 2) * Math.cos(d * i),
-                        m == selected ? hoverColor.get() : textColor.get(),
+                final var module = modules.get(i);
+                {
+                    final var sin = Math.sin(d * i - d / 2.0);
+                    final var cos = Math.cos(d * i - d / 2.0);
+                    r.line(cx + closeR * sin, cy + closeR * cos, cx + wheelR * sin, cy + wheelR * cos, lineColor.get());
+                }
+                final var width = r.textWidth(module.title, shadow);
+                final var x = cx + (closeR + wheelR / 2.0) * Math.sin(d * i) - width / 2.0;
+                final var y = cy + (closeR + wheelR / 2.0) * Math.cos(d * i);
+                r.text(module.title, x, y,
+                        module == selected ? hoverColor.get()
+                                : module.isActive()
+                                        ? textColor.get()
+                                        : disabledColor.get(),
                         shadow);
             }
             r.end();
@@ -190,13 +213,6 @@ public class WheelSystem extends System<WheelSystem> {
 
     public static WheelSystem get() {
         return Systems.get(WheelSystem.class);
-    }
-
-    public Wheel favorites() {
-        return new Wheel(Modules.get()
-                .getAll().stream()
-                .filter(i -> i.favorite)
-                .toList());
     }
 
     public final List<Wheel> wheels = new ArrayList<>();
@@ -211,10 +227,11 @@ public class WheelSystem extends System<WheelSystem> {
             .defaultValue(Keybind.fromKey(GLFW.GLFW_KEY_R))
             .build());
 
-    private final Setting<Boolean> chatFeedback = sgGeneral.add(new BoolSetting.Builder()
-            .name("chat-feedback")
-            .description("Will send \"Toggled on/off\" messages.")
-            .visible(Config.get().chatFeedback::get)
+    private final SettingGroup sgControl = settings.createGroup("Control");
+
+    private final Setting<Boolean> click = sgControl.add(new BoolSetting.Builder()
+            .name("click")
+            .description("Enable clicking in the screen.")
             .defaultValue(true)
             .build());
 
@@ -233,7 +250,7 @@ public class WheelSystem extends System<WheelSystem> {
             .description("Radius of the wheel itself.")
             .min(0)
             .sliderRange(100, 400)
-            .defaultValue(200)
+            .defaultValue(300)
             .build());
 
     private final Setting<SettingColor> lineColor = sgVisual.add(new ColorSetting.Builder()
@@ -248,6 +265,12 @@ public class WheelSystem extends System<WheelSystem> {
             .defaultValue(Color.WHITE.a(200))
             .build());
 
+    private final Setting<SettingColor> disabledColor = sgVisual.add(new ColorSetting.Builder()
+            .name("disabled-color")
+            .description("The color of disabled modules.")
+            .defaultValue(Color.WHITE.a(100))
+            .build());
+
     private final Setting<SettingColor> hoverColor = sgVisual.add(new ColorSetting.Builder()
             .name("hover-color")
             .description("The color used to highlight the selected module.")
@@ -260,6 +283,15 @@ public class WheelSystem extends System<WheelSystem> {
             .defaultValue(true)
             .build());
 
+    private final SettingGroup sgOther = settings.createGroup("Other");
+
+    private final Setting<Boolean> chatFeedback = sgOther.add(new BoolSetting.Builder()
+            .name("chat-feedback")
+            .description("Will send \"Toggled on/off\" messages.")
+            .visible(Config.get().chatFeedback::get)
+            .defaultValue(true)
+            .build());
+
     public WheelSystem() {
         super("wheel");
 
@@ -267,10 +299,18 @@ public class WheelSystem extends System<WheelSystem> {
             lineColor.get().update();
             textColor.get().update();
             hoverColor.get().update();
+            disabledColor.get().update();
         });
 
         if (isFirstInit)
             defaultWheels();
+    }
+
+    public Wheel favorites() {
+        return new Wheel(Modules.get()
+                .getAll().stream()
+                .filter(i -> i.favorite)
+                .toList());
     }
 
     @Override
@@ -315,6 +355,19 @@ public class WheelSystem extends System<WheelSystem> {
                 .bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
     }
 
+    public void open(final Wheel w) {
+        if (mc.player == null)
+            return;
+        if (!Utils.canOpenGui())
+            return;
+        if (w.modules.get().isEmpty())
+            return;
+
+        final var s = new WheelScreen(w);
+        MeteorClient.EVENT_BUS.subscribe(s);
+        mc.setScreen(s);
+    }
+
     @EventHandler
     private void onKey(final KeyEvent event) {
         if (event.action != KeyAction.Press)
@@ -336,18 +389,5 @@ public class WheelSystem extends System<WheelSystem> {
     private void onOpenScreen(final OpenScreenEvent event) {
         if (mc.currentScreen instanceof final WheelScreen s)
             MeteorClient.EVENT_BUS.unsubscribe(s);
-    }
-
-    public void open(final Wheel w) {
-        if (mc.player == null)
-            return;
-        if (!Utils.canOpenGui())
-            return;
-        if (w.modules.get().isEmpty())
-            return;
-
-        final var s = new WheelScreen(w);
-        MeteorClient.EVENT_BUS.subscribe(s);
-        mc.setScreen(s);
     }
 }
