@@ -2,8 +2,6 @@ package twoten.meteor.wheel.tabs;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
-import java.util.List;
-
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.WindowScreen;
 import meteordevelopment.meteorclient.gui.renderer.GuiRenderer;
@@ -52,6 +50,8 @@ public class WheelTab extends Tab {
 
         private final WheelSystem sys = WheelSystem.get();
 
+        private WContainer settings;
+
         public TabScreen(final GuiTheme theme, final Tab tab) {
             super(theme, tab);
             sys.settings.onActivated();
@@ -59,7 +59,7 @@ public class WheelTab extends Tab {
 
         @Override
         public void initWidgets() {
-            add(theme.settings(sys.settings)).expandX();
+            settings = (WContainer) add(theme.settings(sys.settings)).expandX().widget();
 
             add(theme.horizontalSeparator()).expandX();
 
@@ -98,6 +98,13 @@ public class WheelTab extends Tab {
 
                 table.row();
             }
+        }
+
+        @Override
+        public void tick() {
+            super.tick();
+
+            sys.settings.tick(settings, theme);
         }
 
         @Override

@@ -8,7 +8,6 @@ import net.minecraft.command.CommandSource;
 import twoten.meteor.wheel.systems.WheelSystem;
 
 public class WheelCommand extends Command {
-
     public WheelCommand() {
         super("wheel", "Intended for use in combination with macros - create wheel menus programmatically.");
     }

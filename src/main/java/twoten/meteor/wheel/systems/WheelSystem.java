@@ -12,6 +12,7 @@ import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.OpenScreenEvent;
 import meteordevelopment.meteorclient.events.meteor.KeyEvent;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
+import meteordevelopment.meteorclient.gui.GuiThemes;
 import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.ColorSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
@@ -46,6 +47,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 
+// TODO: marco wheel
 public class WheelSystem extends System<WheelSystem> {
     public static class Wheel {
         public final Settings settings = new Settings();
@@ -85,14 +87,15 @@ public class WheelSystem extends System<WheelSystem> {
         }
 
         private final Keybind keybind;
+
         private final List<Module> modules;
         private Module selected;
-
         private final int l;
+
         private final double d;
         private double mx, my;
-
         private final boolean shadow = textShadow.get();
+
         private final double closeR = centerSize.get();
         private final double wheelR = wheelSize.get();
 
@@ -104,6 +107,8 @@ public class WheelSystem extends System<WheelSystem> {
 
             this.l = modules.size();
             this.d = 2.0 * Math.PI / l;
+
+            MeteorClient.EVENT_BUS.subscribe(this);
         }
 
         @Override
@@ -140,12 +145,18 @@ public class WheelSystem extends System<WheelSystem> {
         public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
             if (click.get()) {
                 switch (button) {
+                    case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> {
+                        if (selected == null || !configure.get())
+                            return false;
+                        super.close();
+                        mc.setScreen(GuiThemes.get().moduleScreen(selected));
+                    }
                     case GLFW.GLFW_MOUSE_BUTTON_LEFT -> act();
                     default -> {
                         return false;
                     }
                 }
-                return true;
+                return selected != null;
             }
             return super.mouseClicked(mouseX, mouseY, button);
         }
@@ -159,6 +170,13 @@ public class WheelSystem extends System<WheelSystem> {
         protected void init() {
             super.init();
             mouseMoved(width / 2.0, height / 2.0);
+        }
+
+        @EventHandler
+        private void onOpenScreen(final OpenScreenEvent event) {
+            if (event.screen == this)
+                return;
+            MeteorClient.EVENT_BUS.unsubscribe(this);
         }
 
         private void act() {
@@ -233,6 +251,13 @@ public class WheelSystem extends System<WheelSystem> {
             .name("click")
             .description("Enable clicking in the screen.")
             .defaultValue(true)
+            .build());
+
+    private final Setting<Boolean> configure = sgControl.add(new BoolSetting.Builder()
+            .name("configure")
+            .description("Right click to open module settings.")
+            .defaultValue(true)
+            .visible(click::get)
             .build());
 
     private final SettingGroup sgVisual = settings.createGroup("Appearance");
@@ -363,9 +388,7 @@ public class WheelSystem extends System<WheelSystem> {
         if (w.modules.get().isEmpty())
             return;
 
-        final var s = new WheelScreen(w);
-        MeteorClient.EVENT_BUS.subscribe(s);
-        mc.setScreen(s);
+        mc.setScreen(new WheelScreen(w));
     }
 
     @EventHandler
@@ -383,11 +406,5 @@ public class WheelSystem extends System<WheelSystem> {
                 open(w);
                 break;
             }
-    }
-
-    @EventHandler
-    private void onOpenScreen(final OpenScreenEvent event) {
-        if (mc.currentScreen instanceof final WheelScreen s)
-            MeteorClient.EVENT_BUS.unsubscribe(s);
     }
 }
