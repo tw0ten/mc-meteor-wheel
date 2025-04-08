@@ -73,13 +73,13 @@ public class WheelTab extends Tab {
                     save();
                 };
 
-                table.add(theme.button(GuiRenderer.RESET)).widget().action = () -> YesNoPrompt.create()
-                        .dontShowAgainCheckboxVisible(false)
-                        .title("Wheel Settings").message("Reset wheels list?")
+                table.add(theme.button(GuiRenderer.RESET)).widget().action = YesNoPrompt.create()
+                        .title("Wheel Settings")
+                        .message("Reset wheels list?")
                         .onYes(() -> {
                             sys.defaultWheels();
                             save();
-                        }).show();
+                        })::show;
             }
 
             final var table = add(theme.table()).expandX().widget();

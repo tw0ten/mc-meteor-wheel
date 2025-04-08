@@ -42,6 +42,7 @@ import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.RainbowColors;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
+import meteordevelopment.orbit.EventPriority;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
@@ -201,7 +202,7 @@ public class WheelSystem extends System<WheelSystem> {
             return modules.get((int) ((Math.PI * 2.0 + d / 2.0 + Math.atan2(x, y)) / d) % modules.size());
         }
 
-        @EventHandler
+        @EventHandler(priority = EventPriority.LOWEST)
         private void onRender(final Render2DEvent event) {
             final var r = HudRenderer.INSTANCE;
             final var s = s();
