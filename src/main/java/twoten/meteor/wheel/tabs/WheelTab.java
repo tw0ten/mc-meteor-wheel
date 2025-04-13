@@ -11,7 +11,6 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import meteordevelopment.meteorclient.utils.render.prompts.YesNoPrompt;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.nbt.NbtCompound;
 import twoten.meteor.wheel.systems.WheelSystem;
 import twoten.meteor.wheel.systems.WheelSystem.Wheel;
 
@@ -109,19 +108,12 @@ public class WheelTab extends Tab {
 
         @Override
         public boolean toClipboard() {
-            return NbtUtils.toClipboard("wheel", sys.toTag());
+            return NbtUtils.toClipboard(sys);
         }
 
         @Override
         public boolean fromClipboard() {
-            final NbtCompound clipboard = NbtUtils.fromClipboard(sys.toTag());
-
-            if (clipboard != null) {
-                sys.fromTag(clipboard);
-                return true;
-            }
-
-            return false;
+            return NbtUtils.fromClipboard(sys);
         }
 
         private void save() {

@@ -36,7 +36,9 @@ import meteordevelopment.meteorclient.systems.modules.render.Tracers;
 import meteordevelopment.meteorclient.systems.modules.render.Xray;
 import meteordevelopment.meteorclient.systems.modules.render.blockesp.BlockESP;
 import meteordevelopment.meteorclient.utils.Utils;
+import meteordevelopment.meteorclient.utils.misc.ISerializable;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
+import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import meteordevelopment.meteorclient.utils.misc.input.KeyAction;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import meteordevelopment.meteorclient.utils.render.color.RainbowColors;
@@ -46,11 +48,12 @@ import meteordevelopment.orbit.EventPriority;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.text.Text;
 
 // TODO: marco wheel
 public class WheelSystem extends System<WheelSystem> {
-    public static class Wheel {
+    public static class Wheel implements ISerializable<Wheel> {
         public final Settings settings = new Settings();
 
         private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -72,12 +75,25 @@ public class WheelSystem extends System<WheelSystem> {
             this.modules.set(modules);
         }
 
-        public Wheel(final NbtCompound settings) {
-            this.settings.fromTag(settings);
+        public Wheel(final NbtElement tag) {
+            this.fromTag((NbtCompound) tag);
         }
 
         public Wheel bind(final Keybind i) {
             this.keybind.set(i);
+            return this;
+        }
+
+        @Override
+        public NbtCompound toTag() {
+            final var tag = new NbtCompound();
+            tag.put("settings", settings.toTag());
+            return tag;
+        }
+
+        @Override
+        public Wheel fromTag(final NbtCompound tag) {
+            settings.fromTag(tag.getCompoundOrEmpty("settings"));
             return this;
         }
     }
@@ -343,28 +359,17 @@ public class WheelSystem extends System<WheelSystem> {
     public NbtCompound toTag() {
         final var tag = new NbtCompound();
 
-        tag.putInt("__version__", 1);
-
         tag.put("settings", settings.toTag());
-
-        final var size = wheels.size();
-        tag.putInt("size", size);
-        for (var i = 0; i < size; i++)
-            tag.put("w-" + i, wheels.get(i).settings.toTag());
+        tag.put("wheels", NbtUtils.listToTag(wheels));
 
         return tag;
     }
 
     @Override
     public WheelSystem fromTag(final NbtCompound tag) {
-        if (!tag.contains("__version__"))
-            return this;
-
-        settings.fromTag(tag.getCompound("settings"));
-
-        final var size = tag.getInt("size");
-        for (var i = 0; i < size; i++)
-            wheels.add(new Wheel(tag.getCompound("w-" + i)));
+        settings.fromTag(tag.getCompoundOrEmpty("settings"));
+        wheels.clear();
+        wheels.addAll(NbtUtils.listFromTag(tag.getListOrEmpty("wheels"), Wheel::new));
 
         return this;
     }
