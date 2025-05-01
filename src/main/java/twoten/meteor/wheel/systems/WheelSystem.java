@@ -36,7 +36,6 @@ import meteordevelopment.meteorclient.systems.modules.render.Tracers;
 import meteordevelopment.meteorclient.systems.modules.render.Xray;
 import meteordevelopment.meteorclient.systems.modules.render.blockesp.BlockESP;
 import meteordevelopment.meteorclient.utils.Utils;
-import meteordevelopment.meteorclient.utils.misc.ISerializable;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import meteordevelopment.meteorclient.utils.misc.input.KeyAction;
@@ -48,56 +47,10 @@ import meteordevelopment.orbit.EventPriority;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.text.Text;
+import twoten.meteor.wheel.etc.Wheel;
 
-// TODO: marco wheel
 public class WheelSystem extends System<WheelSystem> {
-    public static class Wheel implements ISerializable<Wheel> {
-        public final Settings settings = new Settings();
-
-        private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
-        public final Setting<List<Module>> modules = sgGeneral.add(new ModuleListSetting.Builder()
-                .name("modules")
-                .description("Select modules to put in quick access.")
-                .build());
-
-        public final Setting<Keybind> keybind = sgGeneral.add(new KeybindSetting.Builder()
-                .name("bind")
-                .description("Key to hold.")
-                .build());
-
-        public Wheel() {
-        }
-
-        public Wheel(final List<Module> modules) {
-            this.modules.set(modules);
-        }
-
-        public Wheel(final NbtElement tag) {
-            this.fromTag((NbtCompound) tag);
-        }
-
-        public Wheel bind(final Keybind i) {
-            this.keybind.set(i);
-            return this;
-        }
-
-        @Override
-        public NbtCompound toTag() {
-            final var tag = new NbtCompound();
-            tag.put("settings", settings.toTag());
-            return tag;
-        }
-
-        @Override
-        public Wheel fromTag(final NbtCompound tag) {
-            settings.fromTag(tag.getCompoundOrEmpty("settings"));
-            return this;
-        }
-    }
-
     private class WheelScreen extends Screen {
         private static double s() {
             return mc.getWindow().getScaleFactor();
@@ -105,9 +58,8 @@ public class WheelSystem extends System<WheelSystem> {
 
         private final Keybind keybind;
 
-        private final List<Module> modules;
+        private final Module[] modules;
         private Module selected;
-        private final int l;
 
         private final double d;
         private double mx, my;
@@ -120,10 +72,9 @@ public class WheelSystem extends System<WheelSystem> {
             super(Text.of(getName()));
 
             this.keybind = w.keybind.get();
-            this.modules = w.modules.get();
+            this.modules = w.modules.get().toArray(Module[]::new);
 
-            this.l = modules.size();
-            this.d = 2.0 * Math.PI / l;
+            this.d = 2.0 * Math.PI / modules.length;
 
             MeteorClient.EVENT_BUS.subscribe(this);
         }
@@ -161,9 +112,11 @@ public class WheelSystem extends System<WheelSystem> {
         @Override
         public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
             if (click.get()) {
+                if (selected == null)
+                    return false;
                 switch (button) {
                     case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> {
-                        if (selected == null || !configure.get())
+                        if (!configure.get())
                             return false;
                         super.close();
                         mc.setScreen(GuiThemes.get().moduleScreen(selected));
@@ -173,7 +126,7 @@ public class WheelSystem extends System<WheelSystem> {
                         return false;
                     }
                 }
-                return selected != null;
+                return true;
             }
             return super.mouseClicked(mouseX, mouseY, button);
         }
@@ -215,39 +168,55 @@ public class WheelSystem extends System<WheelSystem> {
                 if (l <= square(closeR) || l > square(wheelR))
                     return null;
             }
-            return modules.get((int) ((Math.PI * 2.0 + d / 2.0 + Math.atan2(x, y)) / d) % modules.size());
+            return modules[(int) ((Math.PI * 2.0 + d / 2.0 + Math.atan2(x, y)) / d) % modules.length];
         }
 
         @EventHandler(priority = EventPriority.LOWEST)
         private void onRender(final Render2DEvent event) {
-            final var r = HudRenderer.INSTANCE;
+            final var renderer = HudRenderer.INSTANCE;
             final var s = s();
             final var cx = width / 2.0 * s;
             final var cy = height / 2.0 * s;
-            r.begin(event.drawContext);
-            for (var i = 0; i < l; i++) {
-                final var module = modules.get(i);
-                {
-                    final var sin = Math.sin(d * i - d / 2.0);
-                    final var cos = Math.cos(d * i - d / 2.0);
-                    r.line(cx + closeR * sin, cy + closeR * cos, cx + wheelR * sin, cy + wheelR * cos, lineColor.get());
-                }
-                final var width = r.textWidth(module.title, shadow);
-                final var x = cx + (closeR + wheelR / 2.0) * Math.sin(d * i) - width / 2.0;
-                final var y = cy + (closeR + wheelR / 2.0) * Math.cos(d * i);
-                r.text(module.title, x, y,
-                        module == selected ? hoverColor.get()
+            renderer.begin(event.drawContext);
+            for (var i = 0; i < modules.length; i++) {
+                final var sin = Math.sin(d * i - d / 2.0);
+                final var cos = Math.cos(d * i - d / 2.0);
+                final var color = lineColor.get();
+                renderer.line(
+                        cx + closeR * sin, cy + closeR * cos,
+                        cx + wheelR * sin, cy + wheelR * cos,
+                        color);
+            }
+            for (var i = 0; i < modules.length; i++) {
+                final var module = modules[i];
+                final var r = wheelR / 2.0 + closeR;
+                final var x = cx + Math.sin(d * i) * r;
+                final var y = cy + Math.cos(d * i) * r;
+                final var width = renderer.textWidth(module.title, shadow);
+                renderer.text(module.title, x - width / 2.0, y,
+                        module == selected
+                                ? hoverColor.get()
                                 : module.isActive()
                                         ? textColor.get()
                                         : disabledColor.get(),
                         shadow);
             }
-            r.end();
+            renderer.end();
         }
     }
 
     public static WheelSystem get() {
         return Systems.get(WheelSystem.class);
+    }
+
+    public static List<Wheel> defaultWheels() {
+        return List.of(
+                new Wheel(new ModuleListSetting.Builder()
+                        .defaultValue(ElytraFly.class, AutoWalk.class, KillAura.class)
+                        .build().get()).bind(Keybind.fromKey(GLFW.GLFW_KEY_C)),
+                new Wheel(new ModuleListSetting.Builder()
+                        .defaultValue(Xray.class, BlockESP.class, StorageESP.class, Tracers.class, Fullbright.class)
+                        .build().get()).bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
     }
 
     public final List<Wheel> wheels = new ArrayList<>();
@@ -345,23 +314,14 @@ public class WheelSystem extends System<WheelSystem> {
         });
 
         if (isFirstInit)
-            defaultWheels();
-    }
-
-    public Wheel favorites() {
-        return new Wheel(Modules.get()
-                .getAll().stream()
-                .filter(i -> i.favorite)
-                .toList());
+            wheels.addAll(defaultWheels());
     }
 
     @Override
     public NbtCompound toTag() {
         final var tag = new NbtCompound();
-
         tag.put("settings", settings.toTag());
         tag.put("wheels", NbtUtils.listToTag(wheels));
-
         return tag;
     }
 
@@ -369,31 +329,15 @@ public class WheelSystem extends System<WheelSystem> {
     public WheelSystem fromTag(final NbtCompound tag) {
         settings.fromTag(tag.getCompoundOrEmpty("settings"));
         wheels.clear();
-        wheels.addAll(NbtUtils.listFromTag(tag.getListOrEmpty("wheels"), Wheel::new));
-
+        wheels.addAll(NbtUtils.listFromTag(tag.getListOrEmpty("wheels"), Wheel::load));
         return this;
     }
 
-    public void defaultWheels() {
-        wheels.clear();
-        wheels.add(new Wheel(new ModuleListSetting.Builder()
-                .defaultValue(ElytraFly.class, AutoWalk.class, KillAura.class)
-                .build().get())
-                .bind(Keybind.fromKey(GLFW.GLFW_KEY_C)));
-        wheels.add(new Wheel(new ModuleListSetting.Builder()
-                .defaultValue(Xray.class, BlockESP.class, StorageESP.class, Tracers.class, Fullbright.class)
-                .build().get())
-                .bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
-    }
-
     public void open(final Wheel w) {
-        if (mc.player == null)
+        if (mc.player == null
+                || !Utils.canOpenGui()
+                || w.modules.get().isEmpty())
             return;
-        if (!Utils.canOpenGui())
-            return;
-        if (w.modules.get().isEmpty())
-            return;
-
         mc.setScreen(new WheelScreen(w));
     }
 
@@ -403,7 +347,9 @@ public class WheelSystem extends System<WheelSystem> {
             return;
 
         if (event.key == favorites.get().getValue()) {
-            open(favorites().bind(favorites.get()));
+            open(new Wheel(Modules.get().getAll().stream()
+                    .filter(i -> i.favorite).toList())
+                    .bind(favorites.get()));
             return;
         }
 

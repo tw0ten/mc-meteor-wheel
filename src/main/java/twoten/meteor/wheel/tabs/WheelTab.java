@@ -11,8 +11,8 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import meteordevelopment.meteorclient.utils.render.prompts.YesNoPrompt;
 import net.minecraft.client.gui.screen.Screen;
+import twoten.meteor.wheel.etc.Wheel;
 import twoten.meteor.wheel.systems.WheelSystem;
-import twoten.meteor.wheel.systems.WheelSystem.Wheel;
 
 public class WheelTab extends Tab {
     public static class TabScreen extends WindowTabScreen {
@@ -76,7 +76,8 @@ public class WheelTab extends Tab {
                         .title("Wheel Settings")
                         .message("Reset wheels list?")
                         .onYes(() -> {
-                            sys.defaultWheels();
+                            sys.wheels.clear();
+                            sys.wheels.addAll(WheelSystem.defaultWheels());
                             save();
                         })::show;
             }
@@ -102,7 +103,6 @@ public class WheelTab extends Tab {
         @Override
         public void tick() {
             super.tick();
-
             sys.settings.tick(settings, theme);
         }
 
