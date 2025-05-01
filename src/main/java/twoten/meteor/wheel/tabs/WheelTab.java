@@ -72,7 +72,7 @@ public class WheelTab extends Tab {
                     save();
                 };
 
-                table.add(theme.button(GuiRenderer.RESET)).widget().action = YesNoPrompt.create()
+                table.add(theme.button(GuiRenderer.RESET)).widget().action = YesNoPrompt.create(theme, this)
                         .title("Wheel Settings")
                         .message("Reset wheels list?")
                         .onYes(() -> {
