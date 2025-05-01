@@ -19,14 +19,14 @@ public class Wheel implements ISerializable<Wheel> {
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    public final Setting<List<Module>> modules = sgGeneral.add(new ModuleListSetting.Builder()
-            .name("modules")
-            .description("Select modules to put in quick access.")
-            .build());
-
     public final Setting<Keybind> keybind = sgGeneral.add(new KeybindSetting.Builder()
             .name("bind")
             .description("Key to hold.")
+            .build());
+
+    public final Setting<List<Module>> modules = sgGeneral.add(new ModuleListSetting.Builder()
+            .name("modules")
+            .description("Select modules to put in quick access.")
             .build());
 
     public Wheel(final List<Module> modules) {
