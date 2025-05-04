@@ -12,7 +12,6 @@ import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.OpenScreenEvent;
 import meteordevelopment.meteorclient.events.meteor.KeyEvent;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
-import meteordevelopment.meteorclient.gui.GuiThemes;
 import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.ColorSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
@@ -22,7 +21,6 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.settings.Settings;
 import meteordevelopment.meteorclient.systems.System;
-import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -48,18 +46,20 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
+import twoten.meteor.wheel.etc.ModuleWheel;
 import twoten.meteor.wheel.etc.Wheel;
 
 public class WheelSystem extends System<WheelSystem> {
-    private class WheelScreen extends Screen {
+    private class WheelScreen<T> extends Screen {
         private static double s() {
             return mc.getWindow().getScaleFactor();
         }
 
         private final Keybind keybind;
 
-        private final Module[] modules;
-        private Module selected;
+        private final Wheel<T> wheel;
+        private final T[] items;
+        private T selected;
 
         private final double d;
         private double mx, my;
@@ -68,13 +68,14 @@ public class WheelSystem extends System<WheelSystem> {
         private final double closeR = centerSize.get();
         private final double wheelR = wheelSize.get();
 
-        public WheelScreen(final Wheel w) {
+        public WheelScreen(final Wheel<T> wheel) {
             super(Text.of(getName()));
+            this.wheel = wheel;
 
-            this.keybind = w.keybind.get();
-            this.modules = w.modules.get().toArray(Module[]::new);
+            this.keybind = wheel.keybind.get();
+            this.items = wheel.items();
 
-            this.d = 2.0 * Math.PI / modules.length;
+            this.d = 2.0 * Math.PI / items.length;
 
             MeteorClient.EVENT_BUS.subscribe(this);
         }
@@ -119,7 +120,7 @@ public class WheelSystem extends System<WheelSystem> {
                         if (!configure.get())
                             return false;
                         super.close();
-                        mc.setScreen(GuiThemes.get().moduleScreen(selected));
+                        wheel.configure(selected);
                     }
                     case GLFW.GLFW_MOUSE_BUTTON_LEFT -> act();
                     default -> {
@@ -153,13 +154,10 @@ public class WheelSystem extends System<WheelSystem> {
             if (selected == null)
                 return;
 
-            selected.toggle();
-
-            if (chatFeedback.get())
-                selected.sendToggledMsg();
+            wheel.act(selected);
         }
 
-        private Module selected() {
+        private T selected() {
             final var s = s();
             final var x = mx - width * s / 2.0;
             final var y = my - height * s / 2.0;
@@ -168,7 +166,7 @@ public class WheelSystem extends System<WheelSystem> {
                 if (l <= square(closeR) || l > square(wheelR))
                     return null;
             }
-            return modules[(int) ((Math.PI * 2.0 + d / 2.0 + Math.atan2(x, y)) / d) % modules.length];
+            return items[(int) ((Math.PI * 2.0 + d / 2.0 + Math.atan2(x, y)) / d) % items.length];
         }
 
         @EventHandler(priority = EventPriority.LOWEST)
@@ -178,7 +176,7 @@ public class WheelSystem extends System<WheelSystem> {
             final var cx = width / 2.0 * s;
             final var cy = height / 2.0 * s;
             renderer.begin(event.drawContext);
-            for (var i = 0; i < modules.length; i++) {
+            for (var i = 0; i < items.length; i++) {
                 final var sin = Math.sin(d * i - d / 2.0);
                 final var cos = Math.cos(d * i - d / 2.0);
                 final var color = lineColor.get();
@@ -187,8 +185,8 @@ public class WheelSystem extends System<WheelSystem> {
                         cx + wheelR * sin, cy + wheelR * cos,
                         color);
             }
-            for (var i = 0; i < modules.length; i++) {
-                final var module = modules[i];
+            for (var i = 0; i < items.length; i++) {
+                final var module = (Module) items[i];
                 final var r = wheelR / 2.0 + closeR;
                 final var x = cx + Math.sin(d * i) * r;
                 final var y = cy + Math.cos(d * i) * r;
@@ -205,21 +203,17 @@ public class WheelSystem extends System<WheelSystem> {
         }
     }
 
-    public static WheelSystem get() {
-        return Systems.get(WheelSystem.class);
-    }
-
-    public static List<Wheel> defaultWheels() {
+    public static List<Wheel<?>> defaultWheels() {
         return List.of(
-                new Wheel(new ModuleListSetting.Builder()
+                new ModuleWheel(new ModuleListSetting.Builder()
                         .defaultValue(ElytraFly.class, AutoWalk.class, KillAura.class)
                         .build().get()).bind(Keybind.fromKey(GLFW.GLFW_KEY_C)),
-                new Wheel(new ModuleListSetting.Builder()
+                new ModuleWheel(new ModuleListSetting.Builder()
                         .defaultValue(Xray.class, BlockESP.class, StorageESP.class, Tracers.class, Fullbright.class)
                         .build().get()).bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
     }
 
-    public final List<Wheel> wheels = new ArrayList<>();
+    public final List<Wheel<?>> wheels = new ArrayList<>();
 
     public final Settings settings = new Settings();
 
@@ -241,7 +235,7 @@ public class WheelSystem extends System<WheelSystem> {
 
     private final Setting<Boolean> configure = sgControl.add(new BoolSetting.Builder()
             .name("configure")
-            .description("Right click to open module settings.")
+            .description("Right click to configure item.")
             .defaultValue(true)
             .visible(click::get)
             .build());
@@ -284,7 +278,7 @@ public class WheelSystem extends System<WheelSystem> {
 
     private final Setting<SettingColor> hoverColor = sgVisual.add(new ColorSetting.Builder()
             .name("hover-color")
-            .description("The color used to highlight the selected module.")
+            .description("The color used to highlight the selected item.")
             .defaultValue(new Color(255, 25, 25))
             .build());
 
@@ -296,7 +290,7 @@ public class WheelSystem extends System<WheelSystem> {
 
     private final SettingGroup sgOther = settings.createGroup("Other");
 
-    private final Setting<Boolean> chatFeedback = sgOther.add(new BoolSetting.Builder()
+    public final Setting<Boolean> chatFeedback = sgOther.add(new BoolSetting.Builder()
             .name("chat-feedback")
             .description("Will send \"Toggled on/off\" messages.")
             .visible(Config.get().chatFeedback::get)
@@ -333,12 +327,12 @@ public class WheelSystem extends System<WheelSystem> {
         return this;
     }
 
-    public void open(final Wheel w) {
+    public void open(final Wheel<?> wheel) {
         if (mc.player == null
                 || !Utils.canOpenGui()
-                || w.modules.get().isEmpty())
+                || wheel.items().length == 0)
             return;
-        mc.setScreen(new WheelScreen(w));
+        mc.setScreen(new WheelScreen<>(wheel));
     }
 
     @EventHandler
@@ -347,7 +341,7 @@ public class WheelSystem extends System<WheelSystem> {
             return;
 
         if (event.key == favorites.get().getValue()) {
-            open(new Wheel(Modules.get().getAll().stream()
+            open(new ModuleWheel(Modules.get().getAll().stream()
                     .filter(i -> i.favorite).toList())
                     .bind(favorites.get()));
             return;

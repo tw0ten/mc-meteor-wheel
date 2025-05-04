@@ -8,9 +8,11 @@ import meteordevelopment.meteorclient.gui.renderer.GuiRenderer;
 import meteordevelopment.meteorclient.gui.tabs.Tab;
 import meteordevelopment.meteorclient.gui.tabs.WindowTabScreen;
 import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
+import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import meteordevelopment.meteorclient.utils.render.prompts.YesNoPrompt;
 import net.minecraft.client.gui.screen.Screen;
+import twoten.meteor.wheel.etc.ModuleWheel;
 import twoten.meteor.wheel.etc.Wheel;
 import twoten.meteor.wheel.systems.WheelSystem;
 
@@ -18,9 +20,9 @@ public class WheelTab extends Tab {
     public static class TabScreen extends WindowTabScreen {
         private class EditWheelScreen extends WindowScreen {
             private WContainer settingsContainer;
-            private final Wheel wheel;
+            private final Wheel<?> wheel;
 
-            public EditWheelScreen(final GuiTheme theme, final Wheel wheel) {
+            public EditWheelScreen(final GuiTheme theme, final Wheel<?> wheel) {
                 super(theme, "Edit Wheel");
                 this.wheel = wheel;
             }
@@ -47,7 +49,7 @@ public class WheelTab extends Tab {
             }
         }
 
-        private final WheelSystem sys = WheelSystem.get();
+        private final WheelSystem sys = Systems.get(WheelSystem.class);
 
         private WContainer settings;
 
@@ -67,11 +69,6 @@ public class WheelTab extends Tab {
 
                 table.add(theme.label("Wheels")).expandCellX();
 
-                table.add(theme.plus()).widget().action = () -> {
-                    sys.wheels.addFirst(new Wheel());
-                    save();
-                };
-
                 table.add(theme.button(GuiRenderer.RESET)).widget().action = YesNoPrompt.create(theme, this)
                         .title("Wheel Settings")
                         .message("Reset wheels list?")
@@ -80,13 +77,18 @@ public class WheelTab extends Tab {
                             sys.wheels.addAll(WheelSystem.defaultWheels());
                             save();
                         })::show;
+
+                table.add(theme.plus()).widget().action = () -> {
+                    sys.wheels.addFirst(new ModuleWheel());
+                    save();
+                };
             }
 
             final var table = add(theme.table()).expandX().widget();
             for (var i = 0; i < sys.wheels.size(); i++) {
                 final var w = sys.wheels.get(i);
 
-                table.add(theme.label(w.modules.get().size() + " [" + w.keybind + "]"))
+                table.add(theme.label(w.items().length + " [" + w.keybind + "]"))
                         .expandCellX();
 
                 table.add(theme.button(GuiRenderer.EDIT)).widget().action = () -> mc
