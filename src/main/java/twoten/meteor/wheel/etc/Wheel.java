@@ -53,4 +53,8 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
         settings.fromTag(tag.getCompoundOrEmpty("settings"));
         return this;
     }
+
+    public String name() {
+        return "[" + keybind + "]" + " " + items().length;
+    }
 }

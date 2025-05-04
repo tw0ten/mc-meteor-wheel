@@ -55,16 +55,15 @@ public class WheelSystem extends System<WheelSystem> {
             return mc.getWindow().getScaleFactor();
         }
 
-        private final Keybind keybind;
-
         private final Wheel<T> wheel;
+        private final Keybind keybind;
         private final T[] items;
         private T selected;
 
-        private final double d;
         private double mx, my;
-        private final boolean shadow = textShadow.get();
 
+        private final double d;
+        private final boolean shadow = textShadow.get();
         private final double closeR = centerSize.get();
         private final double wheelR = wheelSize.get();
 
@@ -92,7 +91,6 @@ public class WheelSystem extends System<WheelSystem> {
                 close();
                 return true;
             }
-
             return super.keyReleased(keyCode, scanCode, modifiers);
         }
 
@@ -134,7 +132,7 @@ public class WheelSystem extends System<WheelSystem> {
 
         @Override
         public boolean shouldPause() {
-            return super.shouldPause() && false;
+            return false;
         }
 
         @Override
@@ -153,7 +151,6 @@ public class WheelSystem extends System<WheelSystem> {
         private void act() {
             if (selected == null)
                 return;
-
             wheel.act(selected);
         }
 

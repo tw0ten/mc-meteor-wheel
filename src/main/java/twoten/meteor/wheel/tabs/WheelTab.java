@@ -88,8 +88,7 @@ public class WheelTab extends Tab {
             for (var i = 0; i < sys.wheels.size(); i++) {
                 final var w = sys.wheels.get(i);
 
-                table.add(theme.label(w.items().length + " [" + w.keybind + "]"))
-                        .expandCellX();
+                table.add(theme.label(w.name())).expandCellX();
 
                 table.add(theme.button(GuiRenderer.EDIT)).widget().action = () -> mc
                         .setScreen(new EditWheelScreen(theme, w));

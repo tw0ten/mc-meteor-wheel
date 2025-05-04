@@ -40,4 +40,9 @@ public class ModuleWheel extends Wheel<Module> {
     public void configure(final Module item) {
         MeteorClient.mc.setScreen(GuiThemes.get().moduleScreen(item));
     }
+
+    @Override
+    public String name() {
+        return "module" + " " + super.name();
+    }
 }
