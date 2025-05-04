@@ -6,7 +6,7 @@ import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.gui.GuiThemes;
 import meteordevelopment.meteorclient.settings.ModuleListSetting;
 import meteordevelopment.meteorclient.settings.Setting;
-import meteordevelopment.meteorclient.systems.config.Config;
+import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.systems.modules.Module;
 
 public class ModuleWheel extends Wheel<Module> {
@@ -19,8 +19,9 @@ public class ModuleWheel extends Wheel<Module> {
         this.modules.set(modules);
     }
 
-    public ModuleWheel() {
-        this(List.of());
+    @SafeVarargs
+    public ModuleWheel(final Class<? extends Module>... modules) {
+        this(new ModuleListSetting.Builder().defaultValue(modules).build().get());
     }
 
     @Override
@@ -32,7 +33,7 @@ public class ModuleWheel extends Wheel<Module> {
     public void act(final Module item) {
         item.toggle();
 
-        if (Config.get().chatFeedback.get() && system().chatFeedback.get())
+        if (system().chatFeedback.get())
             item.sendToggledMsg();
     }
 
@@ -42,7 +43,20 @@ public class ModuleWheel extends Wheel<Module> {
     }
 
     @Override
-    public String name() {
-        return "module" + " " + super.name();
+    public void render(final Module item, final boolean selected, final HudRenderer renderer, final double x,
+            final double y) {
+        final var system = system();
+        final var shadow = system.textShadow.get();
+        final var width = renderer.textWidth(item.title, shadow);
+        renderer.text(item.title, x - width / 2.0, y,
+                selected ? system.accentColor.get()
+                        : item.isActive() ? system.textColor.get()
+                                : system.disabledColor.get(),
+                shadow);
+    }
+
+    @Override
+    protected Wheel.Type type() {
+        return Wheel.Type.Module;
     }
 }

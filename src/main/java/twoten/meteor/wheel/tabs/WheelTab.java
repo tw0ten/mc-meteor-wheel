@@ -12,12 +12,33 @@ import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.utils.misc.NbtUtils;
 import meteordevelopment.meteorclient.utils.render.prompts.YesNoPrompt;
 import net.minecraft.client.gui.screen.Screen;
-import twoten.meteor.wheel.etc.ModuleWheel;
 import twoten.meteor.wheel.etc.Wheel;
 import twoten.meteor.wheel.systems.WheelSystem;
 
 public class WheelTab extends Tab {
     public static class TabScreen extends WindowTabScreen {
+        private class AddWheelScreen extends WindowScreen {
+            public AddWheelScreen(final GuiTheme theme) {
+                super(theme, "Select Wheel Type");
+            }
+
+            @Override
+            public void initWidgets() {
+                for (final var e : Wheel.Type.values()) {
+                    add(theme.button(e.name())).expandX().widget().action = () -> {
+                        Systems.get(WheelSystem.class).wheels.addFirst(e.create());
+                        close();
+                    };
+                }
+            }
+
+            @Override
+            public void close() {
+                super.close();
+                save();
+            }
+        }
+
         private class EditWheelScreen extends WindowScreen {
             private WContainer settingsContainer;
             private final Wheel<?> wheel;
@@ -79,8 +100,7 @@ public class WheelTab extends Tab {
                         })::show;
 
                 table.add(theme.plus()).widget().action = () -> {
-                    sys.wheels.addFirst(new ModuleWheel());
-                    save();
+                    mc.setScreen(new AddWheelScreen(theme));
                 };
             }
 

@@ -16,14 +16,12 @@ import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.ColorSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.KeybindSetting;
-import meteordevelopment.meteorclient.settings.ModuleListSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.settings.Settings;
 import meteordevelopment.meteorclient.systems.System;
-import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
-import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.macros.Macros;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.combat.KillAura;
 import meteordevelopment.meteorclient.systems.modules.movement.AutoWalk;
@@ -46,6 +44,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
+import twoten.meteor.wheel.etc.MacroWheel;
 import twoten.meteor.wheel.etc.ModuleWheel;
 import twoten.meteor.wheel.etc.Wheel;
 
@@ -63,9 +62,8 @@ public class WheelSystem extends System<WheelSystem> {
         private double mx, my;
 
         private final double d;
-        private final boolean shadow = textShadow.get();
-        private final double closeR = centerSize.get();
-        private final double wheelR = wheelSize.get();
+        private final double centerSize = WheelSystem.this.centerSize.get();
+        private final double wheelSize = WheelSystem.this.wheelSize.get();
 
         public WheelScreen(final Wheel<T> wheel) {
             super(Text.of(getName()));
@@ -160,7 +158,7 @@ public class WheelSystem extends System<WheelSystem> {
             final var y = my - height * s / 2.0;
             {
                 final var l = square(x) + square(y);
-                if (l <= square(closeR) || l > square(wheelR))
+                if (l <= square(centerSize) || l > square(wheelSize))
                     return null;
             }
             return items[(int) ((Math.PI * 2.0 + d / 2.0 + Math.atan2(x, y)) / d) % items.length];
@@ -178,23 +176,16 @@ public class WheelSystem extends System<WheelSystem> {
                 final var cos = Math.cos(d * i - d / 2.0);
                 final var color = lineColor.get();
                 renderer.line(
-                        cx + closeR * sin, cy + closeR * cos,
-                        cx + wheelR * sin, cy + wheelR * cos,
+                        cx + centerSize * sin, cy + centerSize * cos,
+                        cx + wheelSize * sin, cy + wheelSize * cos,
                         color);
             }
             for (var i = 0; i < items.length; i++) {
-                final var module = (Module) items[i];
-                final var r = wheelR / 2.0 + closeR;
+                final var r = wheelSize / 2.0 + centerSize;
                 final var x = cx + Math.sin(d * i) * r;
                 final var y = cy + Math.cos(d * i) * r;
-                final var width = renderer.textWidth(module.title, shadow);
-                renderer.text(module.title, x - width / 2.0, y,
-                        module == selected
-                                ? hoverColor.get()
-                                : module.isActive()
-                                        ? textColor.get()
-                                        : disabledColor.get(),
-                        shadow);
+                final var item = items[i];
+                wheel.render(item, item == selected, renderer, x, y);
             }
             renderer.end();
         }
@@ -202,12 +193,12 @@ public class WheelSystem extends System<WheelSystem> {
 
     public static List<Wheel<?>> defaultWheels() {
         return List.of(
-                new ModuleWheel(new ModuleListSetting.Builder()
-                        .defaultValue(ElytraFly.class, AutoWalk.class, KillAura.class)
-                        .build().get()).bind(Keybind.fromKey(GLFW.GLFW_KEY_C)),
-                new ModuleWheel(new ModuleListSetting.Builder()
-                        .defaultValue(Xray.class, BlockESP.class, StorageESP.class, Tracers.class, Fullbright.class)
-                        .build().get()).bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
+                new MacroWheel(Macros.get().getAll())
+                        .bind(Keybind.fromKey(GLFW.GLFW_KEY_H)),
+                new ModuleWheel(ElytraFly.class, AutoWalk.class, KillAura.class)
+                        .bind(Keybind.fromKey(GLFW.GLFW_KEY_C)),
+                new ModuleWheel(Xray.class, BlockESP.class, StorageESP.class, Tracers.class, Fullbright.class)
+                        .bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
     }
 
     public final List<Wheel<?>> wheels = new ArrayList<>();
@@ -261,27 +252,26 @@ public class WheelSystem extends System<WheelSystem> {
             .defaultValue(Color.WHITE.a(100))
             .build());
 
-    private final Setting<SettingColor> textColor = sgVisual.add(new ColorSetting.Builder()
+    public final Setting<SettingColor> textColor = sgVisual.add(new ColorSetting.Builder()
             .name("text-color")
-            .description("The color of module titles.")
+            .description("Default text color.")
             .defaultValue(Color.WHITE.a(200))
             .build());
 
-    private final Setting<SettingColor> disabledColor = sgVisual.add(new ColorSetting.Builder()
+    public final Setting<SettingColor> accentColor = sgVisual.add(new ColorSetting.Builder()
+            .name("accent-color")
+            .description("The color used to highlight the selected item.")
+            .defaultValue(new Color(255, 25, 25))
+            .build());
+
+    public final Setting<SettingColor> disabledColor = sgVisual.add(new ColorSetting.Builder()
             .name("disabled-color")
             .description("The color of disabled modules.")
             .defaultValue(Color.WHITE.a(100))
             .build());
 
-    private final Setting<SettingColor> hoverColor = sgVisual.add(new ColorSetting.Builder()
-            .name("hover-color")
-            .description("The color used to highlight the selected item.")
-            .defaultValue(new Color(255, 25, 25))
-            .build());
-
-    private final Setting<Boolean> textShadow = sgVisual.add(new BoolSetting.Builder()
+    public final Setting<Boolean> textShadow = sgVisual.add(new BoolSetting.Builder()
             .name("text-shadow")
-            .description("Whether to use shading on text.")
             .defaultValue(true)
             .build());
 
@@ -289,8 +279,6 @@ public class WheelSystem extends System<WheelSystem> {
 
     public final Setting<Boolean> chatFeedback = sgOther.add(new BoolSetting.Builder()
             .name("chat-feedback")
-            .description("Will send \"Toggled on/off\" messages.")
-            .visible(Config.get().chatFeedback::get)
             .defaultValue(true)
             .build());
 
@@ -300,7 +288,7 @@ public class WheelSystem extends System<WheelSystem> {
         RainbowColors.register(() -> {
             lineColor.get().update();
             textColor.get().update();
-            hoverColor.get().update();
+            accentColor.get().update();
             disabledColor.get().update();
         });
 
@@ -338,8 +326,7 @@ public class WheelSystem extends System<WheelSystem> {
             return;
 
         if (event.key == favorites.get().getValue()) {
-            open(new ModuleWheel(Modules.get().getAll().stream()
-                    .filter(i -> i.favorite).toList())
+            open(new ModuleWheel(Modules.get().getAll().stream().filter(i -> i.favorite).toList())
                     .bind(favorites.get()));
             return;
         }

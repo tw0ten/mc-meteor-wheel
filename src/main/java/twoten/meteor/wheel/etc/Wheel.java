@@ -1,20 +1,45 @@
 package twoten.meteor.wheel.etc;
 
+import java.util.function.Supplier;
+
 import meteordevelopment.meteorclient.settings.KeybindSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.settings.Settings;
 import meteordevelopment.meteorclient.systems.Systems;
+import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.misc.ISerializable;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import twoten.meteor.wheel.systems.WheelSystem;
 
-// TODO: starscript wheel
 public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
+    public enum Type {
+        Module(ModuleWheel::new),
+        Macro(MacroWheel::new);
+
+        public static Type get(final String name) {
+            for (final var v : values())
+                if (v.name().equals(name))
+                    return v;
+            return Module;
+        }
+
+        private final Supplier<Wheel<?>> supplier;
+
+        Type(final Supplier<Wheel<?>> supplier) {
+            this.supplier = supplier;
+        }
+
+        public Wheel<?> create() {
+            return supplier.get();
+        }
+    }
+
     public static Wheel<?> load(final NbtElement tag) {
-        return new ModuleWheel().fromTag((NbtCompound) tag);
+        final var compound = (NbtCompound) tag;
+        return Type.get(compound.getString("type").orElse(null)).create().fromTag(compound);
     }
 
     protected static WheelSystem system() {
@@ -41,9 +66,12 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
 
     public abstract void configure(T item);
 
+    public abstract void render(T item, boolean selected, HudRenderer renderer, double x, double y);
+
     @Override
     public NbtCompound toTag() {
         final var tag = new NbtCompound();
+        tag.putString("type", type().name());
         tag.put("settings", settings.toTag());
         return tag;
     }
@@ -55,6 +83,8 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
     }
 
     public String name() {
-        return "[" + keybind + "]" + " " + items().length;
+        return type() + " " + "[" + keybind + "]" + " " + items().length;
     }
+
+    protected abstract Type type();
 }
