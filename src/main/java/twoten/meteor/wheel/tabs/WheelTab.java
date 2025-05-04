@@ -88,7 +88,7 @@ public class WheelTab extends Tab {
             {
                 final var table = add(theme.table()).expandX().widget();
 
-                table.add(theme.label("Wheels")).expandCellX();
+                table.add(theme.label("Wheels (" + sys.wheels.size() + ")")).expandCellX();
 
                 table.add(theme.button(GuiRenderer.RESET)).widget().action = YesNoPrompt.create(theme, this)
                         .title("Wheel Settings")
@@ -99,9 +99,7 @@ public class WheelTab extends Tab {
                             save();
                         })::show;
 
-                table.add(theme.plus()).widget().action = () -> {
-                    mc.setScreen(new AddWheelScreen(theme));
-                };
+                table.add(theme.plus()).widget().action = () -> mc.setScreen(new AddWheelScreen(theme));
             }
 
             final var table = add(theme.table()).expandX().widget();

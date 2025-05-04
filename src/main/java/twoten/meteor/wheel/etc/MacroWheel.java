@@ -11,7 +11,7 @@ import meteordevelopment.meteorclient.utils.player.ChatUtils;
 
 public class MacroWheel extends Wheel<Macro> {
     // TODO: actual select screen instead of typing by hand
-    private final Setting<List<String>> macros = sgGeneral.add(new StringListSetting.Builder()
+    private final Setting<List<String>> macros = sgItems.add(new StringListSetting.Builder()
             .name("macros")
             .description("Select macros.")
             .build());

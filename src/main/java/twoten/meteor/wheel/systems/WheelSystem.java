@@ -15,6 +15,7 @@ import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.ColorSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
+import meteordevelopment.meteorclient.settings.EnumSetting;
 import meteordevelopment.meteorclient.settings.KeybindSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
@@ -49,6 +50,12 @@ import twoten.meteor.wheel.etc.ModuleWheel;
 import twoten.meteor.wheel.etc.Wheel;
 
 public class WheelSystem extends System<WheelSystem> {
+    enum WheelName {
+        Above,
+        Below,
+        Hide
+    }
+
     private class WheelScreen<T> extends Screen {
         private static double s() {
             return mc.getWindow().getScaleFactor();
@@ -66,7 +73,7 @@ public class WheelSystem extends System<WheelSystem> {
         private final double wheelSize = WheelSystem.this.wheelSize.get();
 
         public WheelScreen(final Wheel<T> wheel) {
-            super(Text.of(getName()));
+            super(Text.of(wheel.name.get()));
             this.wheel = wheel;
 
             this.keybind = wheel.keybind.get();
@@ -167,6 +174,7 @@ public class WheelSystem extends System<WheelSystem> {
         @EventHandler(priority = EventPriority.LOWEST)
         private void onRender(final Render2DEvent event) {
             final var renderer = HudRenderer.INSTANCE;
+            final var shadow = textShadow.get();
             final var s = s();
             final var cx = width / 2.0 * s;
             final var cy = height / 2.0 * s;
@@ -187,6 +195,12 @@ public class WheelSystem extends System<WheelSystem> {
                 final var item = items[i];
                 wheel.render(item, item == selected, renderer, x, y);
             }
+            if (wheelName.get() != WheelName.Hide)
+                renderer.text(getTitle().getString(),
+                        width / 2.0 * s - renderer.textWidth(getTitle().getString(), shadow) / 2.0,
+                        cy + (wheelName.get() == WheelName.Above ? -1 : +1) * (centerSize + wheelSize + 5 * s)
+                                - renderer.textHeight(shadow) / 2.0 * s,
+                        nameColor.get(), shadow);
             renderer.end();
         }
     }
@@ -194,10 +208,13 @@ public class WheelSystem extends System<WheelSystem> {
     public static List<Wheel<?>> defaultWheels() {
         return List.of(
                 new MacroWheel(Macros.get().getAll())
+                        .name("All Macros")
                         .bind(Keybind.fromKey(GLFW.GLFW_KEY_H)),
                 new ModuleWheel(ElytraFly.class, AutoWalk.class, KillAura.class)
+                        .name("Generic")
                         .bind(Keybind.fromKey(GLFW.GLFW_KEY_C)),
                 new ModuleWheel(Xray.class, BlockESP.class, StorageESP.class, Tracers.class, Fullbright.class)
+                        .name("Render")
                         .bind(Keybind.fromKey(GLFW.GLFW_KEY_G)));
     }
 
@@ -230,6 +247,12 @@ public class WheelSystem extends System<WheelSystem> {
 
     private final SettingGroup sgVisual = settings.createGroup("Appearance");
 
+    private final Setting<WheelName> wheelName = sgVisual.add(new EnumSetting.Builder<WheelName>()
+            .name("wheel-name")
+            .description("How to display the wheel name.")
+            .defaultValue(WheelName.Below)
+            .build());
+
     private final Setting<Double> centerSize = sgVisual.add(new DoubleSetting.Builder()
             .name("center-size")
             .description("Radius of the area in the center of the screen.")
@@ -246,9 +269,16 @@ public class WheelSystem extends System<WheelSystem> {
             .defaultValue(300)
             .build());
 
+    public final Setting<SettingColor> nameColor = sgVisual.add(new ColorSetting.Builder()
+            .name("name-color")
+            .description("Color of the wheel name.")
+            .defaultValue(new Color(200, 200, 200, 200))
+            .visible(() -> wheelName.get() != WheelName.Hide)
+            .build());
+
     private final Setting<SettingColor> lineColor = sgVisual.add(new ColorSetting.Builder()
             .name("line-color")
-            .description("The color of separator lines.")
+            .description("Color of separator lines.")
             .defaultValue(Color.WHITE.a(100))
             .build());
 
@@ -266,7 +296,7 @@ public class WheelSystem extends System<WheelSystem> {
 
     public final Setting<SettingColor> disabledColor = sgVisual.add(new ColorSetting.Builder()
             .name("disabled-color")
-            .description("The color of disabled modules.")
+            .description("Color of disabled modules.")
             .defaultValue(Color.WHITE.a(100))
             .build());
 
@@ -327,6 +357,7 @@ public class WheelSystem extends System<WheelSystem> {
 
         if (event.key == favorites.get().getValue()) {
             open(new ModuleWheel(Modules.get().getAll().stream().filter(i -> i.favorite).toList())
+                    .name(favorites.title)
                     .bind(favorites.get()));
             return;
         }

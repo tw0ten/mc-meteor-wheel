@@ -6,6 +6,7 @@ import meteordevelopment.meteorclient.settings.KeybindSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.settings.Settings;
+import meteordevelopment.meteorclient.settings.StringSetting;
 import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.misc.ISerializable;
@@ -48,15 +49,28 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
 
     public final Settings settings = new Settings();
 
-    protected final SettingGroup sgGeneral = settings.getDefaultGroup();
+    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+    public final Setting<String> name = sgGeneral.add(new StringSetting.Builder()
+            .name("name")
+            .description("Name of this wheel.")
+            .defaultValue("Wheel")
+            .build());
 
     public final Setting<Keybind> keybind = sgGeneral.add(new KeybindSetting.Builder()
             .name("bind")
             .description("Key to hold.")
             .build());
 
+    protected final SettingGroup sgItems = settings.createGroup("Items");
+
     public Wheel<T> bind(final Keybind i) {
         this.keybind.set(i);
+        return this;
+    }
+
+    public Wheel<T> name(final String i) {
+        this.name.set(i);
         return this;
     }
 
@@ -83,7 +97,7 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
     }
 
     public String name() {
-        return type() + " " + "[" + keybind + "]" + " " + items().length;
+        return name + " " + "[" + keybind + "]" + " " + "(" + type() + " " + items().length + ")";
     }
 
     protected abstract Type type();

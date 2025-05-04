@@ -10,7 +10,7 @@ import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.systems.modules.Module;
 
 public class ModuleWheel extends Wheel<Module> {
-    public final Setting<List<Module>> modules = sgGeneral.add(new ModuleListSetting.Builder()
+    public final Setting<List<Module>> modules = sgItems.add(new ModuleListSetting.Builder()
             .name("modules")
             .description("Select modules to put in quick access.")
             .build());
