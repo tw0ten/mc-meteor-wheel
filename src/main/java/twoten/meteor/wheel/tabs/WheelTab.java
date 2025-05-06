@@ -61,6 +61,7 @@ public class WheelTab extends Tab {
             @Override
             protected void onClosed() {
                 super.onClosed();
+                wheel.validate();
                 save();
             }
         }

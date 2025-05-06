@@ -24,7 +24,7 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
             for (final var v : values())
                 if (v.name().equals(name))
                     return v;
-            return Module;
+            return values()[0];
         }
 
         private final Supplier<Wheel<?>> supplier;
@@ -60,6 +60,7 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
     public final Setting<Keybind> keybind = sgGeneral.add(new KeybindSetting.Builder()
             .name("bind")
             .description("Key to hold.")
+            .onChanged(this::validateKeybind)
             .build());
 
     protected final SettingGroup sgItems = settings.createGroup("Items");
@@ -97,4 +98,17 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
     }
 
     public abstract Type type();
+
+    public void validate() {
+        keybind.onChanged();
+    }
+
+    private void validateKeybind(final Keybind value) {
+        if (!value.isSet())
+            return;
+        if (!value.isKey())
+            keybind.reset();
+        else if (value.hasMods())
+            keybind.set(Keybind.fromKey(value.getValue()));
+    }
 }

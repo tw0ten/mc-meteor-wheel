@@ -207,6 +207,9 @@ public class WheelSystem extends System<WheelSystem> {
 
     public static List<Wheel<?>> defaultWheels() {
         return List.of(
+                new ModuleWheel(Modules.get().getAll().stream().filter(i -> i.favorite).toList())
+                        .name("Favorites")
+                        .bind(Keybind.fromKey(GLFW.GLFW_KEY_R)),
                 new MacroWheel(Macros.get().getAll())
                         .name("All Macros")
                         .bind(Keybind.fromKey(GLFW.GLFW_KEY_H)),
@@ -221,14 +224,6 @@ public class WheelSystem extends System<WheelSystem> {
     public final List<Wheel<?>> wheels = new ArrayList<>();
 
     public final Settings settings = new Settings();
-
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
-    private final Setting<Keybind> favorites = sgGeneral.add(new KeybindSetting.Builder()
-            .name("favorites")
-            .description("A wheel for modules you have marked as favorite.")
-            .defaultValue(Keybind.fromKey(GLFW.GLFW_KEY_R))
-            .build());
 
     private final SettingGroup sgControl = settings.createGroup("Control");
 
@@ -354,13 +349,6 @@ public class WheelSystem extends System<WheelSystem> {
     private void onKey(final KeyEvent event) {
         if (event.action != KeyAction.Press)
             return;
-
-        if (event.key == favorites.get().getValue()) {
-            open(new ModuleWheel(Modules.get().getAll().stream().filter(i -> i.favorite).toList())
-                    .name(favorites.title)
-                    .bind(favorites.get()));
-            return;
-        }
 
         for (final var w : wheels)
             if (event.key == w.keybind.get().getValue()) {
