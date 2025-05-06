@@ -24,18 +24,13 @@ public class WheelTab extends Tab {
 
             @Override
             public void initWidgets() {
-                for (final var e : Wheel.Type.values()) {
+                for (final var e : Wheel.Type.values())
                     add(theme.button(e.name())).expandX().widget().action = () -> {
-                        Systems.get(WheelSystem.class).wheels.addFirst(e.create());
                         close();
+                        final var wheel = e.create();
+                        Systems.get(WheelSystem.class).wheels.addFirst(wheel);
+                        mc.setScreen(new EditWheelScreen(theme, wheel));
                     };
-                }
-            }
-
-            @Override
-            public void close() {
-                super.close();
-                save();
             }
         }
 
@@ -44,7 +39,7 @@ public class WheelTab extends Tab {
             private final Wheel<?> wheel;
 
             public EditWheelScreen(final GuiTheme theme, final Wheel<?> wheel) {
-                super(theme, "Edit Wheel");
+                super(theme, "Edit Wheel (" + wheel.type() + ")");
                 this.wheel = wheel;
             }
 
@@ -81,32 +76,35 @@ public class WheelTab extends Tab {
 
         @Override
         public void initWidgets() {
-            settings = (WContainer) add(theme.settings(sys.settings)).expandX().widget();
+            final var section = add(theme.section("Wheels", true)).expandX().widget();
 
-            add(theme.horizontalSeparator()).expandX();
+            final var table = section.add(theme.table()).expandX().widget();
 
-            {
-                final var table = add(theme.table()).expandX().widget();
+            table.add(theme.label("Name")).expandCellX();
+            table.add(theme.label("Items")).expandCellX();
+            table.add(theme.label("Bind")).expandCellX();
 
-                table.add(theme.label("Wheels (" + sys.wheels.size() + ")")).expandCellX();
+            table.add(theme.button(GuiRenderer.RESET)).widget().action = YesNoPrompt.create(theme, this)
+                    .title("Wheel Settings")
+                    .message("Reset wheels list?")
+                    .onYes(() -> {
+                        sys.wheels.clear();
+                        sys.wheels.addAll(WheelSystem.defaultWheels());
+                        save();
+                    })::show;
 
-                table.add(theme.button(GuiRenderer.RESET)).widget().action = YesNoPrompt.create(theme, this)
-                        .title("Wheel Settings")
-                        .message("Reset wheels list?")
-                        .onYes(() -> {
-                            sys.wheels.clear();
-                            sys.wheels.addAll(WheelSystem.defaultWheels());
-                            save();
-                        })::show;
+            table.add(theme.plus()).widget().action = () -> mc.setScreen(new AddWheelScreen(theme));
 
-                table.add(theme.plus()).widget().action = () -> mc.setScreen(new AddWheelScreen(theme));
-            }
+            table.row();
+            table.add(theme.horizontalSeparator()).expandX();
+            table.row();
 
-            final var table = add(theme.table()).expandX().widget();
             for (var i = 0; i < sys.wheels.size(); i++) {
                 final var w = sys.wheels.get(i);
 
-                table.add(theme.label(w.name())).expandCellX();
+                table.add(theme.label(w.name.get())).expandCellX();
+                table.add(theme.label(w.items().length + " " + w.type())).expandCellX();
+                table.add(theme.label(w.keybind.get().toString())).expandCellX();
 
                 table.add(theme.button(GuiRenderer.EDIT)).widget().action = () -> mc
                         .setScreen(new EditWheelScreen(theme, w));
@@ -117,6 +115,8 @@ public class WheelTab extends Tab {
 
                 table.row();
             }
+
+            settings = (WContainer) add(theme.settings(sys.settings)).expandX().widget();
         }
 
         @Override

@@ -96,9 +96,5 @@ public abstract class Wheel<T> implements ISerializable<Wheel<T>> {
         return this;
     }
 
-    public String name() {
-        return name + " " + "[" + keybind + "]" + " " + "(" + type() + " " + items().length + ")";
-    }
-
-    protected abstract Type type();
+    public abstract Type type();
 }

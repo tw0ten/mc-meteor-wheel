@@ -44,8 +44,9 @@ public class MacroWheel extends Wheel<Macro> {
     }
 
     @Override
-    public void render(final Macro item, final boolean selected, final HudRenderer renderer, final double x,
-            final double y) {
+    public void render(final Macro item, final boolean selected,
+            final HudRenderer renderer,
+            final double x, final double y) {
         final var system = system();
         final var shadow = system.textShadow.get();
         final var title = item.name.get();
@@ -57,7 +58,7 @@ public class MacroWheel extends Wheel<Macro> {
     }
 
     @Override
-    protected Wheel.Type type() {
+    public Wheel.Type type() {
         return Wheel.Type.Macro;
     }
 }

@@ -43,8 +43,9 @@ public class ModuleWheel extends Wheel<Module> {
     }
 
     @Override
-    public void render(final Module item, final boolean selected, final HudRenderer renderer, final double x,
-            final double y) {
+    public void render(final Module item, final boolean selected,
+            final HudRenderer renderer,
+            final double x, final double y) {
         final var system = system();
         final var shadow = system.textShadow.get();
         final var width = renderer.textWidth(item.title, shadow);
@@ -56,7 +57,7 @@ public class ModuleWheel extends Wheel<Module> {
     }
 
     @Override
-    protected Wheel.Type type() {
+    public Wheel.Type type() {
         return Wheel.Type.Module;
     }
 }
