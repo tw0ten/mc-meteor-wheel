@@ -1,7 +1,6 @@
 package twoten.meteor.wheel.etc;
 
 import java.util.List;
-
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.gui.GuiThemes;
 import meteordevelopment.meteorclient.settings.ModuleListSetting;

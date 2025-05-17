@@ -1,7 +1,6 @@
 package twoten.meteor.wheel.etc;
 
 import java.util.List;
-
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.StringListSetting;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;

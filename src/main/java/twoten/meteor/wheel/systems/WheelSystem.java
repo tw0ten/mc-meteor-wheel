@@ -5,9 +5,7 @@ import static net.minecraft.util.math.MathHelper.square;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.lwjgl.glfw.GLFW;
-
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.OpenScreenEvent;
 import meteordevelopment.meteorclient.events.meteor.KeyEvent;
@@ -16,7 +14,6 @@ import meteordevelopment.meteorclient.settings.BoolSetting;
 import meteordevelopment.meteorclient.settings.ColorSetting;
 import meteordevelopment.meteorclient.settings.DoubleSetting;
 import meteordevelopment.meteorclient.settings.EnumSetting;
-import meteordevelopment.meteorclient.settings.KeybindSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.settings.Settings;
@@ -50,7 +47,7 @@ import twoten.meteor.wheel.etc.ModuleWheel;
 import twoten.meteor.wheel.etc.Wheel;
 
 public class WheelSystem extends System<WheelSystem> {
-    enum WheelName {
+    private enum WheelName {
         Above,
         Below,
         Hide

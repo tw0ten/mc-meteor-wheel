@@ -1,7 +1,6 @@
 package twoten.meteor.wheel.etc;
 
 import java.util.function.Supplier;
-
 import meteordevelopment.meteorclient.settings.KeybindSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.SettingGroup;
