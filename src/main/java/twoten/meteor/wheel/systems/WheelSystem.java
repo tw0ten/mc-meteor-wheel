@@ -97,11 +97,6 @@ public class WheelSystem extends System<WheelSystem> {
         }
 
         @Override
-        public void render(final DrawContext context, final int mouseX, final int mouseY, final float delta) {
-            return;
-        }
-
-        @Override
         public void mouseMoved(final double mouseX, final double mouseY) {
             super.mouseMoved(mouseX, mouseY);
             final var s = s();
@@ -143,10 +138,17 @@ public class WheelSystem extends System<WheelSystem> {
             mouseMoved(width / 2.0, height / 2.0);
         }
 
+        private int blurOptionValue = 0;
+
         @EventHandler
         private void onOpenScreen(final OpenScreenEvent event) {
-            if (event.screen == this)
+            final var blurOption = mc.options.getMenuBackgroundBlurriness();
+            if (event.screen == this) {
+                this.blurOptionValue = blurOption.getValue();
+                blurOption.setValue(0);
                 return;
+            }
+            blurOption.setValue(this.blurOptionValue);
             MeteorClient.EVENT_BUS.unsubscribe(this);
         }
 
