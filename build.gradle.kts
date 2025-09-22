@@ -1,10 +1,10 @@
 plugins {
-    id("fabric-loom") version "1.10-SNAPSHOT"
+    id("fabric-loom") version "1.11-SNAPSHOT"
 }
 
 base {
     archivesName = properties["archives_base_name"] as String
-    version = properties["minecraft_version"] as String
+    version = properties["mod_version"] as String
     group = properties["maven_group"] as String
 }
 
@@ -34,8 +34,11 @@ tasks {
         val propertyMap = mapOf(
             "version" to project.version,
             "mc_version" to project.property("minecraft_version"),
-            "commit" to (project.findProperty("commit")?.toString() ?: "")
         )
+
+        inputs.properties(propertyMap)
+
+        filteringCharset = "UTF-8"
 
         filesMatching("fabric.mod.json") {
             expand(propertyMap)
@@ -43,9 +46,10 @@ tasks {
     }
 
     jar {
-        val licenseSuffix = project.base.archivesName.get()
+        inputs.property("archivesName", project.base.archivesName.get())
+
         from("LICENSE") {
-            rename { "${it}_${licenseSuffix}" }
+            rename { "${it}_${inputs.properties["archivesName"]}" }
         }
     }
 
@@ -57,5 +61,7 @@ tasks {
     withType<JavaCompile> {
         options.encoding = "UTF-8"
         options.release = 21
+        options.compilerArgs.add("-Xlint:deprecation")
+        options.compilerArgs.add("-Xlint:unchecked")
     }
 }
