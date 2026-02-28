@@ -23,7 +23,11 @@
   ],
   "custom": {
     "meteor-client:color": "225,25,25",
-    "meteor-client:commit": "${commit}"
+    "modmenu": {
+      "parent": {
+        "id": "meteor-client"
+      }
+    }
   },
   "depends": {
     "java": ">=21",

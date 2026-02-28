@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+
+./gradlew build --no-daemon
+
+mkdir -p .io/o
+cp build/libs/*-*.jar .io/o

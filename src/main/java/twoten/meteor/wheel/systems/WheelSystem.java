@@ -5,6 +5,9 @@ import static net.minecraft.util.math.MathHelper.square;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.KeyInput;
 import org.lwjgl.glfw.GLFW;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.OpenScreenEvent;
@@ -88,12 +91,12 @@ public class WheelSystem extends System<WheelSystem> {
         }
 
         @Override
-        public boolean keyReleased(final int keyCode, final int scanCode, final int modifiers) {
-            if (keyCode == keybind.getValue()) {
+        public boolean keyReleased(final KeyInput input) {
+            if (input.getKeycode() == keybind.getValue()) {
                 close();
                 return true;
             }
-            return super.keyReleased(keyCode, scanCode, modifiers);
+            return super.keyReleased(input);
         }
 
         @Override
@@ -106,11 +109,11 @@ public class WheelSystem extends System<WheelSystem> {
         }
 
         @Override
-        public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
-            if (click.get()) {
+        public boolean mouseClicked(final Click click, final boolean doubled) {
+            if (WheelSystem.this.click.get()) {
                 if (selected == null)
                     return false;
-                switch (button) {
+                switch (click.button()) {
                     case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> {
                         if (!configure.get())
                             return false;
@@ -124,7 +127,7 @@ public class WheelSystem extends System<WheelSystem> {
                 }
                 return true;
             }
-            return super.mouseClicked(mouseX, mouseY, button);
+            return super.mouseClicked(click, doubled);
         }
 
         @Override
@@ -150,6 +153,16 @@ public class WheelSystem extends System<WheelSystem> {
             }
             blurOption.setValue(this.blurOptionValue);
             MeteorClient.EVENT_BUS.unsubscribe(this);
+        }
+
+        @Override
+        public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+            return;
+        }
+
+        @Override
+        protected void renderDarkening(DrawContext context, int x, int y, int width, int height) {
+            return;
         }
 
         private void act() {
@@ -350,7 +363,7 @@ public class WheelSystem extends System<WheelSystem> {
             return;
 
         for (final var w : wheels)
-            if (event.key == w.keybind.get().getValue()) {
+            if (event.key() == w.keybind.get().getValue()) {
                 open(w);
                 break;
             }
