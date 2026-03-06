@@ -1,6 +1,8 @@
 package twoten.meteor.wheel.etc;
 
 import java.util.List;
+import java.util.Objects;
+
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.settings.StringListSetting;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
@@ -25,7 +27,7 @@ public class MacroWheel extends Wheel<Macro> {
     @Override
     public Macro[] items() {
         final var system = Macros.get();
-        return macros.get().stream().map(system::get).filter(i -> i != null).toArray(Macro[]::new);
+        return macros.get().stream().map(system::get).filter(Objects::nonNull).toArray(Macro[]::new);
     }
 
     @Override
